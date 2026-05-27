@@ -2,8 +2,6 @@
 
 A browser-only reference checker. Paste a list of bibliographic references; each one is queried against Crossref, OpenAlex, Zenodo, and Semantic Scholar and given a match score.
 
-**Live:** https://cercaweb.z8.web.core.windows.net/
-
 ## Relation to upstream
 
 This is a **JavaScript port of [CERCA](https://github.com/lidianycs/cerca)** by Lidiany Cerqueira, licensed under AGPL-3.0. The original is a JavaFX desktop application that uses the CERMINE Java library to extract references from PDFs.
