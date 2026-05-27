@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CERCA Web — Reference Checker</title>
+<style>
+  :root { --bg:#f7f7f8; --fg:#1a1a1a; --muted:#666; --border:#d8d8dc; --pass:#0a7d2a; --check:#b8861b; --fail:#b3261e; --accent:#2563eb; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg); margin:0; padding:24px; }
+  h1 { margin:0 0 4px; font-size:20px; }
+  .sub { color:var(--muted); margin-bottom:16px; font-size:13px; }
+  .row { display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+  .col { flex:1; min-width:320px; }
+  textarea { width:100%; height:180px; padding:10px; border:1px solid var(--border); border-radius:6px; font:13px/1.4 ui-monospace,Menlo,Consolas,monospace; resize:vertical; background:white; }
+  button { background:var(--accent); color:white; border:0; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:13px; }
+  button.secondary { background:white; color:var(--fg); border:1px solid var(--border); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .dashboard { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .stat { background:white; border:1px solid var(--border); border-radius:6px; padding:8px 12px; min-width:90px; }
+  .stat .n { font-size:20px; font-weight:600; }
+  .stat .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  table { width:100%; background:white; border-collapse:collapse; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  th, td { padding:8px 10px; text-align:left; vertical-align:top; font-size:13px; border-bottom:1px solid #eee; }
+  th { background:#fafafa; font-weight:600; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  tr:last-child td { border-bottom:0; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; }
+  .badge.pass { background:#e6f5ea; color:var(--pass); }
+  .badge.check { background:#fdf3dd; color:var(--check); }
+  .badge.fail { background:#fde8e6; color:var(--fail); }
+  .badge.wait { background:#eee; color:var(--muted); }
+  .small { color:var(--muted); font-size:12px; }
+  details { background:white; border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin-bottom:12px; }
+  details summary { cursor:pointer; font-weight:600; font-size:13px; }
+  details .fields { display:grid; grid-template-columns:140px 1fr; gap:8px 12px; margin-top:10px; align-items:center; }
+  details input { padding:6px 8px; border:1px solid var(--border); border-radius:4px; font-size:13px; width:100%; }
+  .status-bar { color:var(--muted); font-size:12px; margin-bottom:8px; min-height:18px; }
+  .raw { color:var(--muted); font-size:12px; white-space:pre-wrap; }
+  .truncate { max-width:340px; overflow:hidden; text-overflow:ellipsis; }
+  .privacy { background:#fff8e1; border:1px solid #f0d97e; padding:10px 12px; border-radius:6px; font-size:12px; margin-bottom:16px; }
+</style>
+</head>
+<body>
+<h1>CERCA Web</h1>
+<div class="sub">Paste a reference list. Each line is checked against Crossref, OpenAlex, Zenodo, and Semantic Scholar. &middot; <a href="https://github.com/dannydotliu/cerca-web" target="_blank" rel="noopener">Source code</a> (AGPL-3.0)</div>
+
+<div class="privacy">
+  <strong>Privacy:</strong> Reference text is sent directly from your browser to the four academic APIs above. Nothing is sent to this site's server (it's just a static page). Reference titles will appear in those APIs' server logs.
+</div>
+
+<details>
+  <summary>Settings</summary>
+  <div class="fields">
+    <label for="email">Polite-pool email</label>
+    <input id="email" type="email" placeholder="researcher@university.edu">
+    <label for="s2key">Semantic Scholar API key</label>
+    <input id="s2key" type="password" placeholder="optional — speeds up S2 lookups">
+    <div></div>
+    <div class="small">Stored only in your browser's localStorage. Email is sent to Crossref and OpenAlex as a courtesy identifier.</div>
+  </div>
+</details>
+
+<div class="row">
+  <div class="col">
+    <label class="small" for="input">References (one per line)</label>
+    <textarea id="input" placeholder="Vaswani, A., Shazeer, N., et al. (2017). Attention is all you need. NeurIPS.&#10;Smith, J. (2020). Some other paper. Journal of Things, 12(3), 45–67."></textarea>
+    <div class="toolbar" style="margin-top:8px;">
+      <button id="loadBtn">Load references</button>
+      <button id="verifyBtn" class="secondary" disabled>Verify all</button>
+      <button id="csvBtn" class="secondary" disabled>Export CSV</button>
+      <button id="txtBtn" class="secondary" disabled>Export TXT report</button>
+      <button id="clearBtn" class="secondary">Clear all</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="status"></div>
+
+<div class="dashboard">
+  <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Total</div></div>
+  <div class="stat"><div class="n" id="statPass" style="color:var(--pass)">0</div><div class="l">Pass</div></div>
+  <div class="stat"><div class="n" id="statCheck" style="color:var(--check)">0</div><div class="l">Check</div></div>
+  <div class="stat"><div class="n" id="statFail" style="color:var(--fail)">0</div><div class="l">Fail</div></div>
+</div>
+
+<table>
+  <thead><tr><th>#</th><th>Status</th><th>Score</th><th>Parsed</th><th>Match</th><th>Parsed DOI</th><th>Matched DOI</th></tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<div class="small" style="margin-top:20px; padding-top:12px; border-top:1px solid var(--border); color:var(--muted);">
+  JavaScript port of <a href="https://github.com/lidianycs/cerca" target="_blank" rel="noopener">CERCA</a> by Lidiany Cerqueira. Modifications and source for this version: <a href="https://github.com/dannydotliu/cerca-web" target="_blank" rel="noopener">github.com/dannydotliu/cerca-web</a>. Licensed under <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPL-3.0</a> — you have the right to receive the source code of this hosted version.
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fuzzball@2.1.2/dist/fuzzball.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
