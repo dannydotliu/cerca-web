@@ -10,6 +10,7 @@ This is a **JavaScript port of [CERCA](https://github.com/lidianycs/cerca)** by 
 
 - Ported from Java/JavaFX to plain HTML + JavaScript (no build step, no framework).
 - **PDF extraction removed.** CERMINE has no JavaScript equivalent; input is via copy-paste only.
+- Reference parsing uses a browser port of the [AnyStyle](https://github.com/inukshuk/anystyle) CRF parser, with a heuristic fallback if the model fails to load.
 - Added a heuristic line-joiner that reassembles references wrapped across multiple lines by PDF copy-paste, supporting APA, MLA, Harvard, Vancouver, IEEE, and corporate-author styles.
 - API calls go directly from the browser to the four academic services. There is no backend; the site is served as static files from Azure Blob Storage.
 - Concurrency: 3 references verified in parallel. Zenodo and Semantic Scholar fallbacks are rate-limited to 1 request/second each to respect their stricter quotas.
@@ -32,3 +33,7 @@ Any static host works. Currently deployed to an Azure Blob Storage `$web` contai
 ## License
 
 [AGPL-3.0](LICENSE), inherited from the upstream project. Because the AGPL §13 network-use clause applies, any hosted instance of this code must make the corresponding source available to its users — that's what this repository is for.
+
+### Third-party components
+
+This distribution bundles AnyStyle-JS and its CRF model + dictionary data, which are BSD-2-Clause licensed. See [NOTICE](NOTICE) for the full attribution list and `anystyle/ANYSTYLE_LICENSE` / `anystyle/ANYSTYLE_DATA_LICENSE` for the verbatim BSD texts.

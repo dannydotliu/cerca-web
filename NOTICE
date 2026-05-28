@@ -1,0 +1,34 @@
+cerca-web
+Copyright (C) 2025 Danny Liu and contributors.
+
+This program is licensed under the GNU Affero General Public License v3.0.
+See LICENSE for the full license text.
+
+cerca-web is a JavaScript port of CERCA (https://github.com/lidianycs/cerca)
+by Lidiany Cerqueira, also AGPL-3.0.
+
+================================================================================
+Third-party components bundled with this distribution
+================================================================================
+
+1. anystyle.bundle.js (anystyle/anystyle.bundle.js)
+   A browser port of the AnyStyle reference parser, authored by the cerca-web
+   maintainer. AGPL-3.0. The underlying AnyStyle code it embeds is BSD-2-Clause
+   (see item 2). The corresponding source — the unbundled modules in
+   anystyle/src/ and the build scripts in anystyle/scripts/ — is shipped
+   alongside the bundle to satisfy AGPL §13.
+
+2. AnyStyle CRF model (anystyle/parser.mod)
+   Upstream: https://github.com/inukshuk/anystyle
+   License: BSD-2-Clause. See anystyle/ANYSTYLE_LICENSE.
+
+3. AnyStyle dictionary data (anystyle/dict.json)
+   Upstream: https://github.com/inukshuk/anystyle-data
+   License: BSD-2-Clause. See anystyle/ANYSTYLE_DATA_LICENSE.
+
+4. fuzzball.js (loaded from CDN at runtime, not bundled)
+   Upstream: https://github.com/nol13/fuzzball.js
+   License: MIT.
+
+The BSD-2-Clause license texts for items 2 and 3 are reproduced verbatim in
+the anystyle/ directory and must be retained in any redistribution.

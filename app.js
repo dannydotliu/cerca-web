@@ -39,7 +39,48 @@ $("s2key").value = localStorage.getItem("cerca.s2key") || "";
 $("email").addEventListener("change", e => localStorage.setItem("cerca.email", e.target.value.trim()));
 $("s2key").addEventListener("change", e => localStorage.setItem("cerca.s2key", e.target.value.trim()));
 
-// ---------- reference parsing (heuristic, no CERMINE) ----------
+// ---------- reference parsing ----------
+// AnyStyle (CRF model) is the primary parser; the heuristic below is a fallback
+// if the model files fail to load.
+let anyStyleParser = null;
+async function initAnyStyle() {
+  if (typeof AnyStyle === "undefined") return;
+  try {
+    const [modelText, dictJSON] = await Promise.all([
+      fetch("anystyle/parser.mod").then(r => { if (!r.ok) throw new Error("parser.mod " + r.status); return r.text(); }),
+      fetch("anystyle/dict.json").then(r => r.ok ? r.json() : null),
+    ]);
+    anyStyleParser = AnyStyle.createParser({ modelText, dictJSON });
+  } catch (e) {
+    console.warn("AnyStyle init failed, falling back to heuristic parser:", e);
+    anyStyleParser = null;
+  }
+}
+
+function nameToString(n) {
+  if (!n) return "";
+  if (typeof n === "string") return n;
+  return [n.given, n.family].filter(Boolean).join(" ").trim() || n.literal || "";
+}
+
+function parseWithAnyStyle(rawRefs) {
+  // rawRefs: array of single-reference strings. AnyStyle wants blank-line separation.
+  const blob = rawRefs.join("\n\n");
+  const records = anyStyleParser.parse(blob);
+  // Pad/truncate to match input count; AnyStyle should preserve count when separated by blank lines.
+  return rawRefs.map((raw, i) => {
+    const r = records[i] || {};
+    const authors = (Array.isArray(r.author) ? r.author : (r.author ? [r.author] : [])).map(nameToString).filter(Boolean).join("; ");
+    const title = Array.isArray(r.title) ? r.title.join(" ") : (r.title || "");
+    let doi = Array.isArray(r.doi) ? r.doi[0] : (r.doi || "");
+    if (!doi) {
+      const m = raw.match(/\b10\.\d{4,9}\/[^\s,]+/i);
+      doi = m ? m[0].replace(/[.,;]+$/, "") : "";
+    }
+    return { authors, title: title || raw, doi, raw };
+  });
+}
+
 function parseReference(raw) {
   // Strip leading numbering: "[1] ", "1. ", "(1) "
   let s = raw.replace(/^[\[(]?\d+[\])]?[.,:]?\s*/, "").trim();
@@ -274,14 +315,12 @@ function joinPastedLines(text) {
 
 function loadFromTextarea() {
   const lines = joinPastedLines($("input").value).filter(l => l.length >= 5);
-  state.items = lines.map((raw, i) => {
-    const p = parseReference(raw);
-    return {
-      id: i + 1, raw: p.raw, authors: p.authors, title: p.title, doi: p.doi,
-      matchScore: 0, dbTitle: "", dbAuthors: "", dbDoi: "", source: "",
-      status: "waiting", verified: false,
-    };
-  });
+  const parsed = anyStyleParser ? parseWithAnyStyle(lines) : lines.map(parseReference);
+  state.items = parsed.map((p, i) => ({
+    id: i + 1, raw: p.raw, authors: p.authors, title: p.title, doi: p.doi,
+    matchScore: 0, dbTitle: "", dbAuthors: "", dbDoi: "", source: "",
+    status: "waiting", verified: false,
+  }));
   $("verifyBtn").disabled = state.items.length === 0;
   $("csvBtn").disabled = true;
   $("txtBtn").disabled = true;
@@ -399,3 +438,12 @@ $("clearBtn").addEventListener("click", () => {
   render();
 });
 render();
+
+// Kick off AnyStyle init in the background. Block "Load references" until it resolves
+// so users don't get heuristic output when the better parser is seconds away.
+$("loadBtn").disabled = true;
+setStatus("Loading reference parser…");
+initAnyStyle().finally(() => {
+  $("loadBtn").disabled = false;
+  setStatus(anyStyleParser ? "Reference parser ready." : "Using fallback parser (anystyle failed to load).");
+});
