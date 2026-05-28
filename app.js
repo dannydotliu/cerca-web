@@ -338,6 +338,15 @@ function badge(item) {
 
 function esc(s) { return (s ?? "").toString().replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 
+function doiLink(doi) {
+  if (!doi) return "";
+  const d = doi.trim();
+  // S2 returns arXiv IDs as "arXiv:..." rather than a real DOI; route those to arxiv.org.
+  const arxiv = d.match(/^arxiv[:\s]+(.+)$/i);
+  const href = arxiv ? `https://arxiv.org/abs/${encodeURIComponent(arxiv[1])}` : `https://doi.org/${encodeURI(d)}`;
+  return `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(d)}</a>`;
+}
+
 function render() {
   const tb = $("tbody");
   tb.innerHTML = state.items.map(it => `
@@ -347,8 +356,8 @@ function render() {
       <td>${it.matchScore || ""}</td>
       <td class="truncate"><div>${esc(it.title)}</div><div class="small">${esc(it.authors)}</div></td>
       <td class="truncate"><div>${esc(it.dbTitle)}</div><div class="small">${esc(it.dbAuthors)}</div></td>
-      <td class="small">${esc(it.doi)}</td>
-      <td class="small">${esc(it.dbDoi)}</td>
+      <td class="small">${doiLink(it.doi)}</td>
+      <td class="small">${doiLink(it.dbDoi)}</td>
     </tr>
   `).join("");
   const total = state.items.length;
